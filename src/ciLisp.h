@@ -51,7 +51,8 @@ OPER_TYPE resolveFunc(char *);
 // You will expand this enum as you build the project.
 typedef enum {
     NUM_NODE_TYPE,
-    FUNC_NODE_TYPE
+    FUNC_NODE_TYPE,
+    SYMBOL_NODE_TYPE
 } AST_NODE_TYPE;
 
 // Types of numeric values
@@ -63,10 +64,7 @@ typedef enum {
 // Node to store a number.
 typedef struct {
     NUM_TYPE type;
-    union{
-        double dval;
-        long ival;
-    } value;
+    double value;
 } NUM_AST_NODE;
 
 // Values returned by eval function will be numbers with a type.
@@ -78,29 +76,56 @@ typedef NUM_AST_NODE RET_VAL;
 typedef struct {
     OPER_TYPE oper;
     char* ident; // only needed for custom functions
-    struct ast_node *op1;
-    struct ast_node *op2;
+    struct ast_node *opList;
 } FUNC_AST_NODE;
+
+
+typedef struct symbol_ast_node {
+    char *ident;
+} SYMBOL_AST_NODE;
+
+typedef struct symbol_table_node {
+    char *ident;
+    NUM_TYPE val_type;
+    struct ast_node *val;
+    struct symbol_table_node *next;
+} SYMBOL_TABLE_NODE;
 
 // Generic Abstract Syntax Tree node. Stores the type of node,
 // and reference to the corresponding specific node (initially a number or function call).
 typedef struct ast_node {
     AST_NODE_TYPE type;
+    SYMBOL_TABLE_NODE *symbolTable;
+    struct ast_node *parent;
     union {
         NUM_AST_NODE number;
         FUNC_AST_NODE function;
+        SYMBOL_AST_NODE symbol;
     } data;
+    struct ast_node *next;
 } AST_NODE;
 
 AST_NODE *createNumberNode(double value, NUM_TYPE type);
 
-AST_NODE *createFunctionNode(char *funcName, AST_NODE *op1, AST_NODE *op2);
+AST_NODE *createFunctionNode(char *funcName, AST_NODE *op1);
 
 void freeNode(AST_NODE *node);
 
 RET_VAL eval(AST_NODE *node);
 RET_VAL evalNumNode(NUM_AST_NODE *numNode);
 RET_VAL evalFuncNode(FUNC_AST_NODE *funcNode);
+
+RET_VAL evalSymNode(SYMBOL_AST_NODE *symbolNode, AST_NODE *parent);
+
+AST_NODE *createSymbolNode(char *ident);
+
+SYMBOL_TABLE_NODE *createSymbolTableNode(char *type, char *ident, AST_NODE *sexpr);
+
+AST_NODE *linkSymbolTable(SYMBOL_TABLE_NODE *symTable, AST_NODE *node);
+
+SYMBOL_TABLE_NODE *addAtHead(SYMBOL_TABLE_NODE *list, SYMBOL_TABLE_NODE *element);
+
+AST_NODE *linkFunNodeList(AST_NODE *newItem, AST_NODE *list);
 
 void printRetVal(RET_VAL val);
 
