@@ -11,15 +11,18 @@
 
 %token <sval> FUNC SYMBOL TYPE
 %token <dval> INT DOUBLE
-%token LPAREN RPAREN EOL QUIT LET
+%token LPAREN RPAREN EOL QUIT LET COND LAMBDA
 
 %type <astNode> s_expr f_expr number s_expr_list
-%type <symbolTableNode> let_section let_list let_element
+%type <symbolTableNode> let_section let_list let_element arg_list
 
 %%
 
 program:
-    s_expr EOL {
+    EOL {
+        fprintf(stderr, "yacc: program ::= EOL\n");
+    }
+    | s_expr EOL {
         fprintf(stderr, "yacc: program ::= s_expr EOL\n");
         if ($1) {
             printRetVal(eval($1));
@@ -43,9 +46,13 @@ s_expr:
         fprintf(stderr, "yacc: s_expr ::= SYMBOL\n");
         $$ = createSymbolNode($1);
     }
-    | LPAREN let_section s_expr RPAREN{
+    | LPAREN let_section s_expr RPAREN {
         fprintf(stderr, "yacc: s_expr ::= ( let_section s_expr ) \n");
         $$ = linkSymbolTable( $2, $3);
+    }
+    | LPAREN COND s_expr s_expr s_expr RPAREN {
+        fprintf(stderr, "yacc: s_expr ::= ( cond s_expr s_expr s_expr ) \n");
+        $$ = createConditionalNode($3,$4,$5);
     }
     | error {
         fprintf(stderr, "yacc: s_expr ::= error\n");
@@ -67,11 +74,25 @@ let_list:
     };
 
 let_element:
-    LPAREN TYPE SYMBOL s_expr RPAREN{
-        $$ = createSymbolTableNode($2, $3, $4);
+    LPAREN TYPE SYMBOL s_expr RPAREN {
+        $$ = createFuncNode($2, $3, NULL, $4);
     }
-    | LPAREN SYMBOL s_expr RPAREN{
-        $$ = createSymbolTableNode(NULL, $2, $3);
+    | LPAREN SYMBOL s_expr RPAREN {
+        $$ = createFuncNode(NULL, $2, NULL, $3);
+    }
+    | LPAREN SYMBOL LAMBDA LPAREN arg_list RPAREN s_expr RPAREN {
+        $$ = createFuncNode(NULL, $2, $5, $7);
+    }
+    | LPAREN TYPE SYMBOL LAMBDA LPAREN arg_list RPAREN s_expr RPAREN {
+        $$ = createFuncNode($2, $3, $6, $8);
+    };
+
+arg_list:
+    SYMBOL arg_list {
+        $$ = linkArgList($1, $2);
+    }
+    | SYMBOL {
+        $$ = linkArgList($1, NULL);
     };
 
 number:
@@ -93,7 +114,15 @@ s_expr_list:
     };
 
 f_expr:
-    LPAREN FUNC s_expr RPAREN {
+    LPAREN SYMBOL s_expr_list RPAREN {
+        fprintf(stderr, "yacc: s_expr ::= LPAREN SYMBOL s_expr_list\n");
+        $$ = createFunctionNode($2, $3);
+    }
+    | LPAREN FUNC RPAREN {
+        fprintf(stderr, "yacc: s_expr ::= LPAREN FUNC RPAREN\n");
+        $$ = createFunctionNode($2, NULL);
+    }
+    | LPAREN FUNC s_expr RPAREN {
         fprintf(stderr, "yacc: s_expr ::= LPAREN FUNC expr RPAREN\n");
         $$ = createFunctionNode($2, $3);
     }

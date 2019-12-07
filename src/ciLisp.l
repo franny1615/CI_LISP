@@ -11,7 +11,7 @@ symbol {letter}+
 digit [0-9]
 int_literal [+-]?{digit}+
 double_literal [+-]?{digit}+\.{digit}*
-func "neg"|"abs"|"exp"|"sqrt"|"add"|"sub"|"mult"|"div"|"remainder"|"log"|"pow"|"max"|"min"|"print"|"cbrt"|"exp2"|"hypot"
+func "neg"|"abs"|"exp"|"sqrt"|"add"|"sub"|"mult"|"div"|"remainder"|"log"|"pow"|"max"|"min"|"print"|"cbrt"|"exp2"|"hypot"|"rand"|"read"|"equal"|"less"|"greater"
 
 %%
 
@@ -25,6 +25,14 @@ func "neg"|"abs"|"exp"|"sqrt"|"add"|"sub"|"mult"|"div"|"remainder"|"log"|"pow"|"
     yylval.dval = strtod(yytext, NULL);
     fprintf(stderr, "lex: INT dval = %lf\n", yylval.dval);
     return INT;
+}
+
+"cond" {
+    return COND;
+}
+
+"lambda" {
+    return LAMBDA;
 }
 
 "quit" {
